@@ -1,0 +1,64 @@
+{
+  "name": "coc-codegeex",
+  "version": "0.0.0-development",
+  "description": "codegeex in vim using coc",
+  "author": "Lance Zhu <lancezhu2937@gmail.com>",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "keywords": [
+    "coc.nvim"
+  ],
+  "engines": {
+    "coc": "^0.0.80"
+  },
+  "scripts": {
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "clean": "rimraf lib",
+    "watch": "node esbuild.js --watch",
+    "build": "node esbuild.js",
+    "prepare": "node esbuild.js"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 120,
+    "semi": true
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.13.0",
+    "@typescript-eslint/parser": "^5.13.0",
+    "coc.nvim": "^0.0.80",
+    "esbuild": "^0.14.24",
+    "eslint": "^8.10.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.5.1",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.6.2"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "coc-codegeex configuration",
+      "properties": {
+        "coc-codegeex.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable coc-codegeex extension"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "coc-codegeex.Command",
+        "title": "coc-codegeex command title"
+      }
+    ]
+  },
+  "dependencies": {
+    "got": "^12.5.3"
+  }
+}
