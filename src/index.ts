@@ -8,14 +8,17 @@ import {
   window,
   workspace,
   Range,
+  VimCompleteItem,
 } from 'coc.nvim';
+
 import DemoList from './lists';
 import { getCodeCompletions } from './utils/getCodeCompletions';
-import codegeexConfig from './config/codegeex';
 import { getLanguage } from './utils/getLanguage';
 
 export async function activate(context: ExtensionContext): Promise<void> {
   window.showMessage(`coc-codegeex works!`);
+  const config = workspace.getConfiguration('codegeex');
+  console.log(config);
 
   context.subscriptions.push(
     commands.registerCommand('coc-codegeex.Command', async () => {
@@ -27,11 +30,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
     sources.createSource({
       name: 'coc-codegeex completion source', // unique id
       triggerCharacters: [],
-      priority: 1000,
-      firstMatch: false,
       doComplete: async (option: CompleteOption) => {
-        const items = await getCompletionItems(option);
+        const items = await getCompletionItems(option, config);
         return items;
+      },
+      onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption) => {
+        const currentLine = (await workspace.nvim.call('getline', ['.'])) as string;
+        console.log('currentLine:', currentLine, opt);
       },
     }),
 
@@ -42,48 +47,50 @@ export async function activate(context: ExtensionContext): Promise<void> {
         window.showMessage(`registerKeymap`);
       },
       { sync: false }
-    ),
-
-    workspace.registerAutocmd({
-      event: 'InsertLeave',
-      request: true,
-      callback: () => {
-        window.showMessage(`registerAutocmd on InsertLeave`);
-      },
-    })
+    )
   );
 }
 
-async function getCompletionItems(option: CompleteOption): Promise<CompleteResult> {
+async function getCompletionItems(option: CompleteOption, config): Promise<CompleteResult> {
   const num = 1;
   const lang = getLanguage('');
   const document = await workspace.document;
-  const { linenr, colnr } = option;
+  const { linenr, colnr, line } = option;
   const startLine = Math.max(linenr - 10, 0);
   const text = document.textDocument.getText(Range.create(startLine, 0, linenr, colnr));
   const prompt = text;
+  console.log(option);
+  const prefixOfSymbol = line.slice(0, colnr).split(' ').pop();
+  console.log('prefixOfSymbol:', prefixOfSymbol);
   try {
-    const completions = await getCodeCompletions(prompt, num, lang, codegeexConfig.apiKey, codegeexConfig.apiSecret);
+    const completions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
     return {
       items: completions.map((comp) => {
         return {
-          word: `${option.triggerCharacter}${comp}`,
+          word: `${prefixOfSymbol}${comp.split('\n')[0]}`,
           menu: '[coc-codegeex]',
         };
       }),
       priority: 1000,
+      isIncomplete: true,
     };
     // return {
     //   items: [
     //     {
-    //       word: `${option.triggerCharacter}TestCompletionItem`,
-    //       menu: '[coc-codegeex]',
+    //       word: `${prefixOfSymbol}TestCompletionItem 1`,
+    //       sortText: '0',
+    //       preSelect: true,
+    //       documentation: [{
+    //         filetype: 'markdown',
+    //         content: '# test',
+    //       }],
     //     },
     //     {
-    //       word: 'TestCompletionItem 2',
-    //       menu: '[coc-codegeex]',
+    //       word: `${prefixOfSymbol}TestCompletionItem 2`,
+    //       sortText: '00',
     //     },
     //   ],
+    //   isIncomplete: true,
     //   priority: 1000,
     // };
   } catch (e) {
