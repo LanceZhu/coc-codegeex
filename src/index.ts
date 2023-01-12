@@ -1,9 +1,7 @@
 import {
-  commands,
   CompleteOption,
   CompleteResult,
   ExtensionContext,
-  listManager,
   sources,
   window,
   workspace,
@@ -11,22 +9,18 @@ import {
   VimCompleteItem,
 } from 'coc.nvim';
 
-import DemoList from './lists';
-import { getCodeCompletions } from './utils/getCodeCompletions';
+import { getCodeCompletions, getCodeTranslation } from './utils/getCodeCompletions';
 import { getLanguage } from './utils/getLanguage';
+
+const SOURCE_NAME = 'coc-codegeex';
 
 export async function activate(context: ExtensionContext): Promise<void> {
   window.showMessage(`coc-codegeex works!`);
   const config = workspace.getConfiguration('codegeex');
-  console.log(config);
+  console.log(JSON.stringify(config));
 
   context.subscriptions.push(
-    commands.registerCommand('coc-codegeex.Command', async () => {
-      window.showMessage(`coc-codegeex Commands works!`);
-    }),
-
-    listManager.registerList(new DemoList(workspace.nvim)),
-
+    // source
     sources.createSource({
       name: 'coc-codegeex completion source', // unique id
       triggerCharacters: [],
@@ -35,16 +29,47 @@ export async function activate(context: ExtensionContext): Promise<void> {
         return items;
       },
       onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption) => {
-        const currentLine = (await workspace.nvim.call('getline', ['.'])) as string;
-        console.log('currentLine:', currentLine, opt);
+        if (item.source !== SOURCE_NAME) {
+          return;
+        }
+
+        const lines = item.user_data?.split('\n');
+        const lnum = (await workspace.nvim.call('line', ['.'])) as number;
+        if (lines != null && lines[1] != null) {
+          const appendLines = lines.slice(1);
+          await workspace.nvim.call('append', [lnum, appendLines]);
+          await workspace.nvim.call('setpos', [
+            '.',
+            [0, lnum + appendLines.length, appendLines.slice(-1)[0].length + 1],
+          ]);
+        }
+        if (item.user_data?.endsWith('\n')) {
+          await workspace.nvim.call('append', [lnum, ['']]);
+          await workspace.nvim.call('setpos', ['.', [0, lnum + 1, 1]]);
+        }
       },
     }),
 
+    // keymap
     workspace.registerKeymap(
-      ['n'],
-      'codegeex-keymap',
+      ['v'],
+      'codegeex-translate-keymap',
       async () => {
-        window.showMessage(`registerKeymap`);
+        const { nvim } = workspace;
+        const start = await nvim.call('getpos', [`'<`]);
+        const end = await nvim.call('getpos', [`'>`]);
+        const [startRow, startCol] = start.slice(1, 3);
+        const [endRow, endCol] = end.slice(1, 3);
+        const document = await workspace.document;
+        const text = document.textDocument.getText(Range.create(startRow - 1, startCol - 1, endRow - 1, endCol - 1));
+        const translation = await getCodeTranslation(
+          text,
+          config.srcLang,
+          config.dstLang,
+          config.apiKey,
+          config.apiSecret
+        );
+        window.echoLines(translation[0].split('\n'));
       },
       { sync: false }
     )
@@ -52,47 +77,36 @@ export async function activate(context: ExtensionContext): Promise<void> {
 }
 
 async function getCompletionItems(option: CompleteOption, config): Promise<CompleteResult> {
-  const num = 1;
+  const num = 3;
   const lang = getLanguage('');
   const document = await workspace.document;
   const { linenr, colnr, line } = option;
-  const startLine = Math.max(linenr - 10, 0);
-  const text = document.textDocument.getText(Range.create(startLine, 0, linenr, colnr));
+  const maxLines = 100;
+  const startLine = Math.max(linenr - maxLines, 0);
+  const text = document.textDocument.getText(Range.create(startLine, 0, linenr - 1, colnr - 1));
   const prompt = text;
-  console.log(option);
-  const prefixOfSymbol = line.slice(0, colnr).split(' ').pop();
-  console.log('prefixOfSymbol:', prefixOfSymbol);
   try {
-    const completions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
+    let completions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
+    completions = completions.map((comp) => {
+      return {
+        word: comp.split('\n')[0],
+        // word: comp,
+        menu: '[coc-codegeex]',
+        filterText: `${option.line}`,
+        user_data: comp,
+        source: SOURCE_NAME,
+      };
+    });
+    if (completions && completions.length > 0) {
+      completions[0].preSelect = true;
+    }
+
     return {
-      items: completions.map((comp) => {
-        return {
-          word: `${prefixOfSymbol}${comp.split('\n')[0]}`,
-          menu: '[coc-codegeex]',
-        };
-      }),
+      items: completions,
       priority: 1000,
       isIncomplete: true,
+      startcol: colnr,
     };
-    // return {
-    //   items: [
-    //     {
-    //       word: `${prefixOfSymbol}TestCompletionItem 1`,
-    //       sortText: '0',
-    //       preSelect: true,
-    //       documentation: [{
-    //         filetype: 'markdown',
-    //         content: '# test',
-    //       }],
-    //     },
-    //     {
-    //       word: `${prefixOfSymbol}TestCompletionItem 2`,
-    //       sortText: '00',
-    //     },
-    //   ],
-    //   isIncomplete: true,
-    //   priority: 1000,
-    // };
   } catch (e) {
     console.error(e);
     return null;

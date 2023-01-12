@@ -8,7 +8,7 @@ codegeex in vim using coc
 
 ## Keymaps
 
-`nmap <silent> <C-l> <Plug>(coc-codegeex-keymap)`
+`nmap <silent> <C-l> <Plug>(coc-codegeex-translate-keymap)`
 
 ## Lists
 

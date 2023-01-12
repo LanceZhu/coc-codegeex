@@ -1,7 +1,13 @@
 import got from 'got';
 
-export type GetCodeCompletions = {
+export type CodeCompletions = {
   completions: Array<string>;
+};
+
+type HTTPAPIResponse = {
+  message: string;
+  status: number;
+  result: any;
 };
 
 export async function getCodeCompletions(
@@ -10,30 +16,54 @@ export async function getCodeCompletions(
   lang: string,
   apiKey: string,
   apiSecret: string
-): Promise<GetCodeCompletions> {
+): Promise<CodeCompletions> {
   const API_URL = `https://tianqi.aminer.cn/api/v2/multilingual_code_generate`;
   const payload = {
     prompt: prompt,
     n: num,
+    lang,
     apikey: apiKey,
     apisecret: apiSecret,
   };
-  if (lang.length !== 0) {
-    payload.lang = lang;
-  }
-  const inputText = prompt;
-  console.log('inputText:', inputText);
-  const res = await got
+  const res: HTTPAPIResponse = await got
     .post(API_URL, {
       json: payload,
     })
     .json();
-  console.log(res);
+  console.log('res:', JSON.stringify(res));
   if (res.status !== 0) {
-    return null;
+    return {
+      completions: [],
+    };
   }
   let completions = res.result.output.code;
   completions = completions.filter((el) => el.trim() !== '');
-  console.log('completions:', completions);
   return completions;
+}
+
+export async function getCodeTranslation(
+  prompt: string,
+  srcLang: string,
+  dstLang: string,
+  apiKey: string,
+  apiSecret: string
+): Promise<string> {
+  const API_URL = `https://tianqi.aminer.cn/api/v2/multilingual_code_translate`;
+  const payload = {
+    prompt: prompt,
+    src_lang: srcLang,
+    dst_lang: dstLang,
+    apikey: apiKey,
+    apisecret: apiSecret,
+  };
+  const res: HTTPAPIResponse = await got
+    .post(API_URL, {
+      json: payload,
+    })
+    .json();
+  if (res.status !== 0) {
+    return '';
+  }
+  const translation = res.result.output.code;
+  return translation;
 }
