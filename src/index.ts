@@ -10,7 +10,7 @@ import {
 } from 'coc.nvim';
 
 import { getCodeCompletions, getCodeTranslation } from './utils/getCodeCompletions';
-import { getLanguage } from './utils/getLanguage';
+import { getDocumentLanguage } from './utils/getDocumentLanguage';
 
 const SOURCE_NAME = 'coc-codegeex';
 
@@ -78,8 +78,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
 async function getCompletionItems(option: CompleteOption, config): Promise<CompleteResult> {
   const num = 3;
-  const lang = getLanguage('');
   const document = await workspace.document;
+  const documentLanguageId = document.textDocument.languageId;
+  const lang = getDocumentLanguage(documentLanguageId);
   const { linenr, colnr, line } = option;
   const maxLines = 100;
   const startLine = Math.max(linenr - maxLines, 0);
@@ -92,7 +93,7 @@ async function getCompletionItems(option: CompleteOption, config): Promise<Compl
         word: comp.split('\n')[0],
         // word: comp,
         menu: '[coc-codegeex]',
-        filterText: `${option.line}`,
+        filterText: `${line}`,
         user_data: comp,
         source: SOURCE_NAME,
       };
