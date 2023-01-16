@@ -2,6 +2,7 @@ import got from 'got';
 
 export type CodeCompletions = {
   completions: Array<string>;
+  elapse: string;
 };
 
 type HTTPAPIResponse = {
@@ -34,10 +35,17 @@ export async function getCodeCompletions(
   if (res.status !== 0) {
     return {
       completions: [],
+      elapse: '0s',
     };
   }
   let completions = res.result.output.code;
   completions = completions.filter((el) => el.trim() !== '');
+
+  return {
+    completions,
+    elapse: `${res.result.process_time.toFixed(2)}s`,
+  };
+
   return completions;
 }
 

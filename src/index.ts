@@ -18,6 +18,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
   window.showMessage(`coc-codegeex works!`);
   const config = workspace.getConfiguration('codegeex');
   console.log(JSON.stringify(config));
+  const statusBarItem = window.createStatusBarItem(0, { progress: true });
+  statusBarItem.text = 'coc-codegeex is generating completions...';
 
   context.subscriptions.push(
     // source
@@ -25,7 +27,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
       name: 'coc-codegeex completion source', // unique id
       triggerCharacters: [],
       doComplete: async (option: CompleteOption) => {
+        statusBarItem.show();
         const items = await getCompletionItems(option, config);
+        statusBarItem.hide();
         return items;
       },
       onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption) => {
@@ -87,8 +91,9 @@ async function getCompletionItems(option: CompleteOption, config): Promise<Compl
   const text = document.textDocument.getText(Range.create(startLine, 0, linenr - 1, colnr - 1));
   const prompt = text;
   try {
-    let completions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
-    completions = completions.map((comp) => {
+    const codeCompletions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
+    const { completions, elapse } = codeCompletions;
+    const completionItems = completions.map((comp) => {
       return {
         word: comp.split('\n')[0],
         // word: comp,
@@ -96,14 +101,21 @@ async function getCompletionItems(option: CompleteOption, config): Promise<Compl
         filterText: `${line}`,
         user_data: comp,
         source: SOURCE_NAME,
+        documentation: [
+          {
+            filetype: 'markdown',
+            content: elapse,
+          },
+        ],
       };
     });
-    if (completions && completions.length > 0) {
-      completions[0].preSelect = true;
+
+    if (completionItems && completionItems.length > 0) {
+      completionItems[0].preSelect = true;
     }
 
     return {
-      items: completions,
+      items: completionItems,
       priority: 1000,
       isIncomplete: true,
       startcol: colnr,
