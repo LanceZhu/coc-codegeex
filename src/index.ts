@@ -11,6 +11,7 @@ import {
 
 import { getCodeCompletions, getCodeTranslation } from './utils/getCodeCompletions';
 import { getDocumentLanguage } from './utils/getDocumentLanguage';
+import { languageList } from './constants/index.js';
 
 const SOURCE_NAME = 'coc-codegeex';
 
@@ -32,7 +33,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         statusBarItem.hide();
         return items;
       },
-      onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption) => {
+      onCompleteDone: async (item: VimCompleteItem) => {
         if (item.source !== SOURCE_NAME) {
           return;
         }
@@ -59,21 +60,33 @@ export async function activate(context: ExtensionContext): Promise<void> {
       ['v'],
       'codegeex-translate-keymap',
       async () => {
+        const document = await workspace.document;
+        const documentLanguageId = document.textDocument.languageId;
+        const srcLang = getDocumentLanguage(documentLanguageId);
+        if (languageList.indexOf(srcLang) === -1) {
+          window.showMessage(`current language: ${srcLang} is not supported.`);
+          return;
+        }
+        const targetLanguageIdx = await window.showQuickpick(languageList, 'Target Language');
+        const dstLang = languageList[targetLanguageIdx];
+
         const { nvim } = workspace;
         const start = await nvim.call('getpos', [`'<`]);
         const end = await nvim.call('getpos', [`'>`]);
         const [startRow, startCol] = start.slice(1, 3);
         const [endRow, endCol] = end.slice(1, 3);
-        const document = await workspace.document;
         const text = document.textDocument.getText(Range.create(startRow - 1, startCol - 1, endRow - 1, endCol - 1));
-        const translation = await getCodeTranslation(
-          text,
-          config.srcLang,
-          config.dstLang,
-          config.apiKey,
-          config.apiSecret
-        );
-        window.echoLines(translation[0].split('\n'));
+
+        statusBarItem.show();
+        const translation = await getCodeTranslation(text, srcLang, dstLang, config.apiKey, config.apiSecret);
+        statusBarItem.hide();
+        const outputChannelName = 'coc-codegeex translation';
+        const outputChannel = window.createOutputChannel(outputChannelName);
+        const translationLines = translation[0].split('\n');
+        for (const line of translationLines) {
+          outputChannel.appendLine(line);
+        }
+        window.showOutputChannel(outputChannelName, true);
       },
       { sync: false }
     )
