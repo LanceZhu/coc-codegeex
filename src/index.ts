@@ -16,9 +16,7 @@ import { languageList } from './constants/index.js';
 const SOURCE_NAME = 'coc-codegeex';
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  window.showMessage(`coc-codegeex works!`);
   const config = workspace.getConfiguration('codegeex');
-  console.log(JSON.stringify(config));
   const statusBarItem = window.createStatusBarItem(0, { progress: true });
   statusBarItem.text = 'coc-codegeex is generating completions...';
 

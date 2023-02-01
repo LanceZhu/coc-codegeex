@@ -31,7 +31,7 @@ export async function getCodeCompletions(
       json: payload,
     })
     .json();
-  console.log('res:', JSON.stringify(res));
+  // console.log('res:', JSON.stringify(res));
   if (res.status !== 0) {
     return {
       completions: [],
