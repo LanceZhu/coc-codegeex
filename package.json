@@ -54,7 +54,7 @@
           "type": "string",
           "default": "",
           "description": "apiSecret for codegeex"
-        },
+        }
       }
     }
   },
