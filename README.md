@@ -2,6 +2,8 @@
 
 [codegeex][codegeex] in vim using [coc.nvim][coc.nvim]
 
+![code_generation](./assets/code_generation.gif)
+
 ## Install
 
 first install [coc.nvim][coc.nvim]
