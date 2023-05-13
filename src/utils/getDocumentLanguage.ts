@@ -1,4 +1,4 @@
-export function getDocumentLanguage(documentLanguageId: string) {
+export function getDocumentLanguage(documentLanguageId: string): string {
   let lang = '';
   switch (documentLanguageId) {
     case 'cpp':

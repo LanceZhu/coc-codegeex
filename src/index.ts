@@ -7,11 +7,12 @@ import {
   workspace,
   Range,
   VimCompleteItem,
+  WorkspaceConfiguration,
 } from 'coc.nvim';
 
 import { getCodeCompletions, getCodeTranslation } from './utils/getCodeCompletions';
 import { getDocumentLanguage } from './utils/getDocumentLanguage';
-import { languageList } from './constants/index.js';
+import { languageList } from './constants/index';
 
 const SOURCE_NAME = 'coc-codegeex';
 
@@ -24,6 +25,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     // source
     sources.createSource({
       name: 'coc-codegeex completion source', // unique id
+      // @ts-ignore
       triggerCharacters: [],
       doComplete: async (option: CompleteOption) => {
         statusBarItem.show();
@@ -32,6 +34,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         return items;
       },
       onCompleteDone: async (item: VimCompleteItem) => {
+        // @ts-ignore
         if (item.source !== SOURCE_NAME) {
           return;
         }
@@ -91,7 +94,10 @@ export async function activate(context: ExtensionContext): Promise<void> {
   );
 }
 
-async function getCompletionItems(option: CompleteOption, config): Promise<CompleteResult> {
+async function getCompletionItems(
+  option: CompleteOption,
+  config: WorkspaceConfiguration
+): Promise<CompleteResult | null> {
   const num = 3;
   const document = await workspace.document;
   const documentLanguageId = document.textDocument.languageId;
@@ -122,6 +128,7 @@ async function getCompletionItems(option: CompleteOption, config): Promise<Compl
     });
 
     if (completionItems && completionItems.length > 0) {
+      // @ts-ignore
       completionItems[0].preSelect = true;
     }
 

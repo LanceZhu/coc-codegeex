@@ -39,14 +39,12 @@ export async function getCodeCompletions(
     };
   }
   let completions = res.result.output.code;
-  completions = completions.filter((el) => el.trim() !== '');
+  completions = completions.filter((el: any) => el.trim() !== '');
 
   return {
     completions,
     elapse: `${res.result.process_time.toFixed(2)}s`,
   };
-
-  return completions;
 }
 
 export async function getCodeTranslation(
