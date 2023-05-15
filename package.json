@@ -5,6 +5,11 @@
   "author": "Lance Zhu <lancezhu2937@gmail.com>",
   "license": "MIT",
   "main": "lib/index.js",
+  "files": [
+    "lib/index.js",
+    "autoload",
+    "plugin"
+  ],
   "keywords": [
     "coc.nvim"
   ],
