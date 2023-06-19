@@ -11,7 +11,7 @@ type HTTPAPIResponse = {
   result: any;
 };
 
-export async function getCodeCompletions(
+export async function requestCodeCompletions(
   prompt: string,
   num: number,
   lang: string,
@@ -47,7 +47,7 @@ export async function getCodeCompletions(
   };
 }
 
-export async function getCodeTranslation(
+export async function requestCodeTranslation(
   prompt: string,
   srcLang: string,
   dstLang: string,

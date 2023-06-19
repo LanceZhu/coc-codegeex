@@ -10,9 +10,10 @@ function! coc_codegeex#init() abort
    echo "coc_codegeex#init" 
 endfunction
 
-function! coc_codegeex#UpdatePreview() abort
+function! coc_codegeex#UpdatePreview(items) abort
   try
-   let text = ['line1', 'line2', 'line3']
+   " let text = ['line1', 'line2', 'line3']
+    let text = a:items
    let trail = strpart(getline('.'), col('.') - 1)
    call prop_add(line('.'), col('.'), {'type': s:hlgroup, 'text': text[0]})
    for line in text[1:]

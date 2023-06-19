@@ -1,20 +1,17 @@
 import {
   CompleteOption,
-  CompleteResult,
   ExtensionContext,
   sources,
   window,
   workspace,
   Range,
   VimCompleteItem,
-  WorkspaceConfiguration,
 } from 'coc.nvim';
 
-import { getCodeCompletions, getCodeTranslation } from './utils/getCodeCompletions';
+import { requestCodeTranslation } from './requests/getCodeCompletions';
+import { prepareCodeCompletions, prepareMenuCompletions } from './view';
 import { getDocumentLanguage } from './utils/getDocumentLanguage';
 import { languageList } from './constants/index';
-
-const SOURCE_NAME = 'coc-codegeex';
 
 export async function activate(context: ExtensionContext): Promise<void> {
   const config = workspace.getConfiguration('codegeex');
@@ -29,11 +26,15 @@ export async function activate(context: ExtensionContext): Promise<void> {
       triggerCharacters: [],
       doComplete: async (option: CompleteOption) => {
         statusBarItem.show();
-        const items = await getCompletionItems(option, config);
+        const codeCompletions = await prepareCodeCompletions(option, config);
+        // const menuItems = prepareMenuCompletions(option, codeCompletions)
         statusBarItem.hide();
-        return items;
+        // return menuItems;
+        workspace.nvim.call('coc_codegeex#UpdatePreview', [['line1']]);
+        return null;
       },
       onCompleteDone: async (item: VimCompleteItem) => {
+        workspace.nvim.call('coc_codegeex#ClearPreview')
         // @ts-ignore
         if (item.source !== SOURCE_NAME) {
           return;
@@ -79,7 +80,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         const text = document.textDocument.getText(Range.create(startRow - 1, startCol - 1, endRow - 1, endCol - 1));
 
         statusBarItem.show();
-        const translation = await getCodeTranslation(text, srcLang, dstLang, config.apiKey, config.apiSecret);
+        const translation = await requestCodeTranslation(text, srcLang, dstLang, config.apiKey, config.apiSecret);
         statusBarItem.hide();
         const outputChannelName = 'coc-codegeex translation';
         const outputChannel = window.createOutputChannel(outputChannelName);
@@ -94,52 +95,3 @@ export async function activate(context: ExtensionContext): Promise<void> {
   );
 }
 
-async function getCompletionItems(
-  option: CompleteOption,
-  config: WorkspaceConfiguration
-): Promise<CompleteResult | null> {
-  const num = 3;
-  const document = await workspace.document;
-  const documentLanguageId = document.textDocument.languageId;
-  const lang = getDocumentLanguage(documentLanguageId);
-  const { linenr, colnr, line } = option;
-  const maxLines = 100;
-  const startLine = Math.max(linenr - maxLines, 0);
-  const text = document.textDocument.getText(Range.create(startLine, 0, linenr - 1, colnr - 1));
-  const prompt = text;
-  try {
-    const codeCompletions = await getCodeCompletions(prompt, num, lang, config.apiKey, config.apiSecret);
-    const { completions, elapse } = codeCompletions;
-    const completionItems = completions.map((comp) => {
-      return {
-        word: comp.split('\n')[0],
-        // word: comp,
-        menu: '[coc-codegeex]',
-        filterText: `${line}`,
-        user_data: comp,
-        source: SOURCE_NAME,
-        documentation: [
-          {
-            filetype: 'markdown',
-            content: elapse,
-          },
-        ],
-      };
-    });
-
-    if (completionItems && completionItems.length > 0) {
-      // @ts-ignore
-      completionItems[0].preSelect = true;
-    }
-
-    return {
-      items: completionItems,
-      priority: 1000,
-      isIncomplete: true,
-      startcol: colnr,
-    };
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
-}

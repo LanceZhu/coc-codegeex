@@ -19,3 +19,6 @@ export const languageList = [
   'SQL',
   'R',
 ];
+
+export const SOURCE_NAME = 'coc-codegeex';
+

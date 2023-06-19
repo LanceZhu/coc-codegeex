@@ -10,6 +10,10 @@ endfunction
 augroup coc_codegeex 
   autocmd!
   autocmd ColorScheme,VimEnter * call s:ColorScheme()
+  autocmd InsertLeave * call coc_codegeex#ClearPreview()
+  autocmd BufLeave * call coc_codegeex#ClearPreview()
+  autocmd InsertEnter * call coc_codegeex#ClearPreview()
+  autocmd CompleteChanged * call coc_codegeex#ClearPreview()
 augroup END
 
 call s:ColorScheme()
