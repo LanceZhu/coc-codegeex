@@ -1,22 +1,20 @@
-import {
-  CompleteOption,
-  ExtensionContext,
-  sources,
-  window,
-  workspace,
-  Range,
-  VimCompleteItem,
-} from 'coc.nvim';
+import { CompleteOption, ExtensionContext, sources, window, workspace, Range, VimCompleteItem } from 'coc.nvim';
 
 import { requestCodeTranslation } from './requests/getCodeCompletions';
-import { prepareCodeCompletions, prepareMenuCompletions } from './view';
+import {
+  confirmCodeCompletions,
+  prepareCodeCompletions,
+  prepareInlineCompletions,
+  prepareMenuCompletions,
+} from './view';
 import { getDocumentLanguage } from './utils/getDocumentLanguage';
-import { languageList } from './constants/index';
+import { languageList, SOURCE_NAME } from './constants/index';
 
 export async function activate(context: ExtensionContext): Promise<void> {
   const config = workspace.getConfiguration('codegeex');
   const statusBarItem = window.createStatusBarItem(0, { progress: true });
   statusBarItem.text = 'coc-codegeex is generating completions...';
+  window.echoLines(['ddd']);
 
   context.subscriptions.push(
     // source
@@ -25,35 +23,35 @@ export async function activate(context: ExtensionContext): Promise<void> {
       // @ts-ignore
       triggerCharacters: [],
       doComplete: async (option: CompleteOption) => {
+        // workspace.nvim.call('coc_codegeex#ClearPreview')
         statusBarItem.show();
         const codeCompletions = await prepareCodeCompletions(option, config);
-        // const menuItems = prepareMenuCompletions(option, codeCompletions)
+
         statusBarItem.hide();
-        // return menuItems;
-        workspace.nvim.call('coc_codegeex#UpdatePreview', [['line1']]);
-        return null;
+
+        // memu
+        const menuItems = prepareMenuCompletions(option, codeCompletions);
+
+        return menuItems;
       },
-      onCompleteDone: async (item: VimCompleteItem) => {
-        workspace.nvim.call('coc_codegeex#ClearPreview')
+      onCompleteResolve(item: VimCompleteItem) {
         // @ts-ignore
         if (item.source !== SOURCE_NAME) {
           return;
         }
+        const lines = item.user_data?.split('\n');
+        // inline
+        prepareInlineCompletions(lines);
+      },
+      onCompleteDone: async (item: VimCompleteItem) => {
+        // @ts-ignore
+        if (item.source !== SOURCE_NAME) {
+          return;
+        }
+        workspace.nvim.call('coc_codegeex#ClearPreview');
 
         const lines = item.user_data?.split('\n');
-        const lnum = (await workspace.nvim.call('line', ['.'])) as number;
-        if (lines != null && lines[1] != null) {
-          const appendLines = lines.slice(1);
-          await workspace.nvim.call('append', [lnum, appendLines]);
-          await workspace.nvim.call('setpos', [
-            '.',
-            [0, lnum + appendLines.length, appendLines.slice(-1)[0].length + 1],
-          ]);
-        }
-        if (item.user_data?.endsWith('\n')) {
-          await workspace.nvim.call('append', [lnum, ['']]);
-          await workspace.nvim.call('setpos', ['.', [0, lnum + 1, 1]]);
-        }
+        await confirmCodeCompletions(lines);
       },
     }),
 
@@ -94,4 +92,3 @@ export async function activate(context: ExtensionContext): Promise<void> {
     )
   );
 }
-

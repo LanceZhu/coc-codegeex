@@ -21,7 +21,8 @@ use `:CocConfig` open configuration file, add `apiKey` and `apiSecret`. You can 
   "codegeex": {
     "apiKey": "your_api_key",
     "apiSecret": "your_api_secret",
-  }
+  },
+  "suggest.virtualText": true, // use virual text to show inline compeltion
 }
 ```
 

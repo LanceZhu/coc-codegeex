@@ -21,4 +21,3 @@ export const languageList = [
 ];
 
 export const SOURCE_NAME = 'coc-codegeex';
-
